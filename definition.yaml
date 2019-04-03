@@ -34,7 +34,7 @@ paths:
           schema:
             $ref: "#/definitions/ChangeInfo"
     get:
-      summary: Changes
+      summary: Queries changes visible to the caller.
       description: |
         Queries changes visible to the caller. The n parameter can be used .  As result a list of [ChangeInfo](https://gerrit-documentation.storage.googleapis.com/Documentation/2.13.3/rest-api-changes.html#change-info) entries is returned. The change output is sorted by the last update time, most recently updated to oldest updated.
         
@@ -68,10 +68,26 @@ paths:
             type: array
             items:
               $ref: '#/definitions/ChangeInfo'
-#        default:
-#          description: Unexpected error
-#          schema:
-#            $ref: '#/definitions/Error'
+  /changes/{changeId}:
+    get:
+      summary: Retrieves a change
+      tags:
+      - Changes
+      description: Additional fields can be obtained by adding o parameters, each option requires more database lookups and slows down the query response time to the client so they are generally disabled by default. Fields are described in Query Changes.
+      parameters: 
+        - in: path
+          name: changeId
+          required: true
+          type: string
+          description: Identifier that uniquely identifies one change.
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/ChangeInfo"
+    
+  
+
 definitions:
   ChangeInfo:
     type: object
@@ -278,11 +294,21 @@ definitions:
         type: string
         description: The topic to which this change belongs.
       status:
-        type: string
         description: The topic to which this change belongs.
+        type: string
+        enum:
+        - NEW
+      is_private:
+        description: Whether the new change should be marked as private.
+        type: boolean
+      work_in_progress:
+        description: Whether the new change should be set to work in progress.
+        type: boolean
       base_change:
         type: string
-        description: A {change-id} that identifies the base change for a create change operation.
+        description: A {[change-id](https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#change-id)} that identifies the base change for a create change operation.
+      base_commit:
+        description: A 40-digit hex SHA-1 of the commit which will be the parent commit of the newly created change. If set, it must be a merged commit on the destination branch. Mutually exclusive with base_change.
       new_branch:
         type: boolean
         description: Allow creating a new branch when set to true.  (Default to false.)
