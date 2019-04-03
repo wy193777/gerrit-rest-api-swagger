@@ -1,0 +1,304 @@
+# this is an example of the Gerrit API in Swagger spec
+# as a demonstration of an API spec in YAML
+swagger: '2.0'
+info:
+  title: Gerrit Code Review API
+  description: Gerrit Code Review comes with a REST like API available over HTTP. The API is suitable for automated tools to build upon, as well as supporting some ad-hoc scripting use cases
+  version: "2.13.3"
+# the domain of the service
+host: gerrit.acme.com
+# array of all schemes that your API supports
+schemes:
+  - https
+  - http
+# will be prefixed to all paths
+#basePath: /v1
+produces:
+  - application/json
+paths:
+  /changes:
+    post:
+      tags:
+        - Changes
+      summary: Create a new Change
+      description: The change input ChangeInput entity must be provided in the request body.
+      parameters:
+        - name: input
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/ChangeInput"
+      responses:
+        200:
+          description: A ChangeInfo entity is returned that describes the resulting change.
+          schema:
+            $ref: "#/definitions/ChangeInfo"
+    get:
+      summary: Changes
+      description: |
+        Queries changes visible to the caller. The n parameter can be used .  As result a list of [ChangeInfo](https://gerrit-documentation.storage.googleapis.com/Documentation/2.13.3/rest-api-changes.html#change-info) entries is returned. The change output is sorted by the last update time, most recently updated to oldest updated.
+        
+        If the number of changes matching the query exceeds either the internal limit or a supplied n query parameter, the last change object has a _more_changes: true JSON field set.
+
+      parameters:
+        - name: q
+          in: query
+          description: |
+            [query string](https://gerrit-documentation.storage.googleapis.com/Documentation/2.13.3/user-search.html#_search_operators)
+          required: true
+          type: string
+        - name: n
+          in: query
+          description: To limit the returned results
+          required: false
+          type: number
+          format: integer
+        - name: S
+          in: query
+          description: Skip a number of changes from the list
+          required: false
+          type: number
+          format: integer
+      tags:
+        - Changes
+      responses:
+        200:
+          description: An array of ChangeInfo
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ChangeInfo'
+#        default:
+#          description: Unexpected error
+#          schema:
+#            $ref: '#/definitions/Error'
+definitions:
+  ChangeInfo:
+    type: object
+    required:
+      - id
+      - project
+      - branch
+      - change_id
+      - subject
+      - status
+      - created
+      - updated
+      - insertions
+      - deletions
+      - _number
+      - owner
+      - reviewers
+    properties:
+      id:
+        type: string
+        description: 'The ID of the change in the format "''<project>~<branch>~<Change-Id>''", where ''project'', ''branch'' and ''Change-Id'' are URL encoded. For ''branch'' the refs/heads/ prefix is omitted.'
+      project:
+        type: string
+        description: The name of the project.
+      branch:
+        type: string
+        description: "The name of the target branch.\nThe refs/heads/ prefix is omitted."
+      topic:
+        type: string
+        description: The topic to which this change belongs.
+      change_id:
+        type: string
+        description: The Change-Id of the change.
+      subject:
+        type: string
+        description: The subject of the change (header line of the commit message).
+      status:
+        type: string
+        description: The status of the change (NEW, MERGED, ABANDONED, DRAFT).
+      created:
+        type: string
+        description: The timestamp of when the change was created.
+      updated:
+        type: string
+        description: The timestamp of when the change was last updated.
+      submitted:
+        type: boolean
+        description: The timestamp of when the change was submitted.  Only set for merged changes
+      starred:
+        type: string
+        description: Whether the calling user has starred this change with the default label.
+      stars:
+        type: string
+        description: A list of star labels that are applied by the calling user to this change. The labels are lexicographically sorted.
+      reviewed:
+        type: boolean
+        description: Whether the change was reviewed by the calling user. Only set if reviewed is requested.  Not set if false
+      submit_type:
+        type: string
+        description: "The submit type of the change.\nNot set for merged changes."
+      mergeable:
+        type: string
+        description: "Whether the change is mergeable.\nNot set for merged changes, or if the change has not yet been tested."
+      insertions:
+        type: string
+        description: Number of inserted lines.
+      deletions:
+        type: string
+        description: Number of deleted lines.
+      _number:
+        type: string
+        description: The legacy numeric ID of the change.
+      owner: 
+        description: The owner of the change as an AccountInfo entity.
+        allOf: 
+          - $ref: '#/definitions/AccountInfo'
+      actions:
+        type: string
+        description: Actions the caller might be able to perform on this revision. The information is a map of view name to ActionInfo entities.
+      labels:
+        type: string
+        description: "The labels of the change as a map that maps the label names to LabelInfo entries.\nOnly set if labels or detailed labels are requested."
+      permitted_labels:
+        type: string
+        description: "A map of the permitted labels that maps a label name to the list of values that are allowed for that label.\nOnly set if detailed labels are requested."
+      removable_reviewers:
+        description: "The reviewers that can be removed by the calling user as a list of AccountInfo entities.\nOnly set if detailed labels are requested."
+        type: array
+        items:
+          $ref: '#/definitions/AccountInfo'
+      reviewers:
+        description: "The reviewers as a map that maps a reviewer state to a list of AccountInfo entities. Possible reviewer states are REVIEWER, CC and REMOVED.\nREVIEWER: Users with at least one non-zero vote on the change.\nCC: Users that were added to the change, but have not voted.\nREMOVED: Users that were previously reviewers on the change, but have been removed.\nOnly set if detailed labels are requested."
+        type: array
+        items:
+          $ref: '#/definitions/AccountInfo'
+      reviewer_updates:
+        description: Updates to reviewers set for the change as ReviewerUpdateInfo entities. Only set if reviewer updates are requested and if NoteDb is enabled.
+        allOf: 
+          - $ref: "#/definitions/ReviewerUpdateInfo"
+      messages:
+        type: string
+        description: "Messages associated with the change as a list of ChangeMessageInfo entities.\nOnly set if messages are requested."
+      current_revision:
+        type: string
+        description: "The commit ID of the current patch set of this change.\nOnly set if the current revision is requested or if all revisions are requested."
+      revisions:
+        type: string
+        description: "All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.\nOnly set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested."
+      _more_changes:
+        type: boolean
+        description: "Whether the query would deliver more results if not limited.\nOnly set on the last change that is returned. Not set if false"
+      problems:
+        description: A list of ProblemInfo entities describing potential problems with this change. Only set if CHECK is set.
+        type: array
+        items:
+          $ref: '#/definitions/ProblemInfo'
+  ProblemInfo:
+    description: contains a description of a potential consistency problem with a change. These are not related to the code review process, but rather indicate some inconsistency in Gerrit’s database or repository metadata related to the enclosing change.
+    type: object
+    required:
+      - message
+    properties:
+      message:
+        type: string
+        description: Plaintext message describing the problem with the change.
+      status:
+        type: string
+        description: The status of fixing the problem (FIXED, FIX_FAILED). Only set if a fix was attempted.
+      outcome:
+        type: string
+        description: If status is set, an additional plaintext message describing the outcome of the fix.
+  ReviewerUpdateInfo:
+    description: The ReviewerUpdateInfo entity contains information about updates to change’s reviewers set.
+    type: object
+    required:
+      - updated
+      - updated_by
+      - reviewer
+      - state
+    properties:
+      updated:
+        type: string
+        description: Timestamp of the update.
+      updated_by:
+        $ref: '#/definitions/AccountInfo'
+      reviewer:
+        $ref: '#/definitions/AccountInfo'
+      state:
+        type: string
+        description: The reviewer state, one of REVIEWER, CC or REMOVED.
+  AccountInfo:
+    type: object
+    required:
+      - _account_id
+    properties:
+      _account_id:
+        type: string
+        description: The numeric ID of the account.
+      name:
+        type: string
+        description: The full name of the user.  Only set if detailed account information is requested.  See option DETAILED_ACCOUNTS for change queries  and option DETAILS for account queries.
+      email:
+        type: string
+        description: The email address the user prefers to be contacted through.  Only set if detailed account information is requested.  See option DETAILED_ACCOUNTS for change queries and options DETAILS and ALL_EMAILS for account queries.
+      secondary_emails:
+        description: A list of the secondary email addresses of the user.  Only set for account queries when the ALL_EMAILS option is set.
+        type: array
+        items:
+          type: string
+      username:
+        type: string
+        description: The username of the user.  Only set if detailed account information is requested.  See option DETAILED_ACCOUNTS for change queries and option DETAILS for account queries.
+      _more_account:
+        type: boolean
+        description: Whether the query would deliver more results if not limited.  Only set on the last account that is returned.
+  IDs:
+    description: 'A list of account [IDs](https://gerrit-review.googlesource.com/Documentation/rest-api-accounts.html#account-id) that identify the accounts that should be should be notified.'
+    type: array
+    items:
+      type: string
+  NotifyInfo:
+    description: Additional information about whom to notify about the change creation as a map of recipient type to NotifyInfo entity.
+    type: object
+    properties:
+      accounts:
+        $ref: '#/definitions/IDs'
+  ChangeInput:
+    type: object
+    required:
+      - project
+      - branch
+      - subject
+    properties:
+      project:
+        type: string
+        description: The name of the project.
+      branch:
+        type: string
+        description: The name of the target branch.  The refs/heads/ prefix is omitted.
+      subject:
+        type: string
+        description: The subject of the change (header line of the commit message).
+      topic:
+        type: string
+        description: The topic to which this change belongs.
+      status:
+        type: string
+        description: The topic to which this change belongs.
+      base_change:
+        type: string
+        description: A {change-id} that identifies the base change for a create change operation.
+      new_branch:
+        type: boolean
+        description: Allow creating a new branch when set to true.  (Default to false.)
+      merge:
+        type: string
+        description: The detail of a merge commit as a MergeInput entity.
+      notify:
+        type: string
+        enum: 
+        - NONE
+        - OWNER
+        - OWNER_REVIEWERS
+        - ALL
+        description: |
+          Notify handling that defines to whom email notifications should be sent after the change is created.
+          Allowed values are NONE, OWNER, OWNER_REVIEWERS and ALL.
+          If not set, the default is ALL.
+      notify_details:
+        $ref: '#/definitions/NotifyInfo'
